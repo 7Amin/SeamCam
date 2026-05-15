@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SeamCam: Quantifying Seamless Camouflage via Multi-Cue Visual Detectability</title>
+<meta name="description" content="SeamCam: a perceptually grounded camouflage metric that frames evaluation as a category-aware localization problem. 78.82% alignment with human judgments." />
+
+<!-- Open Graph -->
+<meta property="og:title" content="SeamCam: Quantifying Seamless Camouflage via Multi-Cue Visual Detectability" />
+<meta property="og:description" content="A perceptually grounded camouflage metric with 78.82% human alignment, used to train better camouflage generators via DPO." />
+<meta property="og:type" content="website" />
+
+<!-- MathJax for inline equations -->
+<script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+<!-- Fonts: Fraunces (display serif) + Inter Tight (UI) + JetBrains Mono (code/numbers) -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600;9..144,700&family=Inter+Tight:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --bg: #fafaf7;
+    --bg-elev: #ffffff;
+    --ink: #1a1816;
+    --ink-soft: #45413c;
+    --ink-mute: #807a70;
+    --rule: #e8e3d8;
+    --accent: #c2410c;       /* burnt orange — natural, camouflage-adjacent */
+    --accent-soft: #fed7aa;
+    --accent-deep: #7c2d12;
+    --moss: #4d5d3a;         /* secondary accent for table highlights */
+    --code-bg: #f3efe6;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Inter Tight', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-weight: 400;
+    line-height: 1.6;
+    font-size: 17px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* === Decorative top rule === */
+  .top-rule {
+    height: 4px;
+    background: linear-gradient(90deg, var(--accent-deep) 0%, var(--accent) 40%, var(--moss) 100%);
+  }
+
+  /* === Container === */
+  .container {
+    max-width: 920px;
+    margin: 0 auto;
+    padding: 0 28px;
+  }
+
+  /* === Header === */
+  header {
+    padding: 72px 0 56px;
+    text-align: center;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .venue-tag {
+    display: inline-block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 28px;
+    padding: 5px 11px;
+    border: 1px solid var(--accent);
+    border-radius: 2px;
+  }
+
+  h1.title {
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 500;
+    font-size: clamp(34px, 5vw, 52px);
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+    margin-bottom: 14px;
+    max-width: 820px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  h1.title em {
+    font-style: italic;
+    color: var(--accent-deep);
+    font-weight: 400;
+  }
+
+  .subtitle {
+    font-family: 'Fraunces', Georgia, serif;
+    font-style: italic;
+    font-weight: 300;
+    font-size: 20px;
+    color: var(--ink-soft);
+    margin-bottom: 36px;
+  }
+
+  /* === Authors === */
+  .authors {
+    font-size: 16px;
+    color: var(--ink);
+    margin-bottom: 8px;
+    line-height: 1.9;
+  }
+
+  .author {
+    display: inline-block;
+    margin: 0 6px;
+  }
+
+  .author sup {
+    color: var(--accent);
+    font-size: 12px;
+    font-weight: 500;
+    margin-left: 1px;
+  }
+
+  .equal-contrib {
+    color: var(--ink-mute);
+    font-size: 13px;
+    font-style: italic;
+    margin-top: 6px;
+  }
+
+  .affiliations {
+    font-size: 14px;
+    color: var(--ink-mute);
+    margin-top: 14px;
+    line-height: 1.7;
+  }
+  .affiliations sup {
+    color: var(--accent);
+    margin-right: 2px;
+  }
+
+  /* === Links row === */
+  .links {
+    margin-top: 38px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+  }
+
+  .link-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 18px;
+    background: var(--ink);
+    color: var(--bg);
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+    border-radius: 2px;
+    transition: all 0.18s ease;
+    border: 1px solid var(--ink);
+  }
+  .link-btn:hover {
+    background: var(--accent-deep);
+    border-color: var(--accent-deep);
+    transform: translateY(-1px);
+  }
+  .link-btn.secondary {
+    background: transparent;
+    color: var(--ink);
+  }
+  .link-btn.secondary:hover {
+    background: var(--ink);
+    color: var(--bg);
+  }
+  .link-btn svg { width: 14px; height: 14px; }
+
+  /* === Sections === */
+  section {
+    padding: 64px 0;
+    border-bottom: 1px solid var(--rule);
+  }
+  section:last-of-type { border-bottom: none; }
+
+  h2 {
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 500;
+    font-size: 32px;
+    letter-spacing: -0.01em;
+    color: var(--ink);
+    margin-bottom: 8px;
+    line-height: 1.15;
+  }
+
+  .section-eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.22em;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 14px;
+    display: block;
+  }
+
+  h3 {
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 500;
+    font-size: 22px;
+    margin: 36px 0 14px;
+    color: var(--ink);
+    letter-spacing: -0.005em;
+  }
+
+  p {
+    margin-bottom: 18px;
+    color: var(--ink-soft);
+  }
+
+  p.lead {
+    font-size: 19px;
+    line-height: 1.55;
+    color: var(--ink);
+  }
+
+  /* === Abstract === */
+  .abstract {
+    background: var(--bg-elev);
+    padding: 36px 38px;
+    border-left: 3px solid var(--accent);
+    margin: 24px 0 0;
+  }
+  .abstract p { font-size: 16px; line-height: 1.7; }
+  .abstract p:last-child { margin-bottom: 0; }
+
+  /* === TLDR pull quote === */
+  .tldr {
+    font-family: 'Fraunces', Georgia, serif;
+    font-style: italic;
+    font-weight: 300;
+    font-size: 22px;
+    line-height: 1.5;
+    color: var(--ink);
+    padding: 28px 0 28px 32px;
+    border-left: 3px solid var(--accent);
+    margin: 32px 0;
+  }
+  .tldr strong {
+    font-style: normal;
+    font-weight: 600;
+    color: var(--accent-deep);
+  }
+
+  /* === Key results / stat block === */
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0;
+    margin: 32px 0;
+    border-top: 1px solid var(--rule);
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .stat {
+    padding: 28px 22px;
+    text-align: center;
+    border-right: 1px solid var(--rule);
+  }
+  .stat:last-child { border-right: none; }
+
+  .stat-num {
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 500;
+    font-size: 44px;
+    color: var(--accent-deep);
+    line-height: 1;
+    margin-bottom: 6px;
+    letter-spacing: -0.02em;
+  }
+  .stat-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.16em;
+    color: var(--ink-mute);
+    text-transform: uppercase;
+  }
+
+  @media (max-width: 640px) {
+    .stats { grid-template-columns: 1fr; }
+    .stat { border-right: none; border-bottom: 1px solid var(--rule); }
+    .stat:last-child { border-bottom: none; }
+  }
+
+  /* === Method diagram placeholder === */
+  .figure {
+    margin: 32px 0;
+  }
+  .figure-frame {
+    background: var(--bg-elev);
+    border: 1px solid var(--rule);
+    padding: 24px;
+    text-align: center;
+  }
+  .figure img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin: 0 auto;
+  }
+  .figure-placeholder {
+    height: 280px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: repeating-linear-gradient(
+      45deg,
+      var(--bg) 0px,
+      var(--bg) 8px,
+      var(--bg-elev) 8px,
+      var(--bg-elev) 16px
+    );
+    color: var(--ink-mute);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    letter-spacing: 0.1em;
+    border: 1px dashed var(--rule);
+  }
+  .figure-caption {
+    font-size: 14px;
+    color: var(--ink-mute);
+    margin-top: 14px;
+    text-align: left;
+    line-height: 1.6;
+    padding: 0 4px;
+  }
+  .figure-caption strong { color: var(--ink); font-weight: 500; }
+
+  /* === Tables === */
+  .table-wrap {
+    margin: 24px 0;
+    overflow-x: auto;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+    font-family: 'Inter Tight', sans-serif;
+  }
+  thead th {
+    text-align: left;
+    padding: 12px 14px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+    border-bottom: 2px solid var(--ink);
+    font-weight: 500;
+    background: var(--bg-elev);
+  }
+  thead th.num { text-align: right; }
+  tbody td {
+    padding: 11px 14px;
+    border-bottom: 1px solid var(--rule);
+    color: var(--ink-soft);
+  }
+  tbody td.num {
+    text-align: right;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+  }
+  tbody tr.our-row {
+    background: linear-gradient(90deg, rgba(194,65,12,0.05) 0%, rgba(194,65,12,0.02) 100%);
+  }
+  tbody tr.our-row td { color: var(--ink); font-weight: 500; }
+  tbody tr.our-row td.num { color: var(--accent-deep); font-weight: 600; }
+  .best { color: var(--accent-deep); font-weight: 600; }
+  .second { text-decoration: underline; text-decoration-color: var(--ink-mute); text-underline-offset: 3px; }
+
+  /* === Pipeline / cards === */
+  .pipeline {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin: 32px 0;
+  }
+  .stage {
+    padding: 22px 16px;
+    background: var(--bg-elev);
+    border: 1px solid var(--rule);
+    position: relative;
+  }
+  .stage-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--accent);
+    letter-spacing: 0.15em;
+    margin-bottom: 8px;
+  }
+  .stage-title {
+    font-family: 'Fraunces', Georgia, serif;
+    font-size: 17px;
+    font-weight: 500;
+    color: var(--ink);
+    margin-bottom: 8px;
+    line-height: 1.25;
+  }
+  .stage-body {
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--ink-mute);
+  }
+  @media (max-width: 720px) {
+    .pipeline { grid-template-columns: 1fr 1fr; }
+  }
+  @media (max-width: 440px) {
+    .pipeline { grid-template-columns: 1fr; }
+  }
+
+  /* === Equation block === */
+  .eq-block {
+    background: var(--bg-elev);
+    border-left: 3px solid var(--moss);
+    padding: 22px 28px;
+    margin: 24px 0;
+    font-size: 15px;
+    color: var(--ink);
+    overflow-x: auto;
+  }
+
+  /* === BibTeX === */
+  .bibtex {
+    background: var(--code-bg);
+    border: 1px solid var(--rule);
+    padding: 24px 28px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    line-height: 1.65;
+    color: var(--ink);
+    white-space: pre;
+    overflow-x: auto;
+    margin-top: 16px;
+  }
+
+  .copy-btn {
+    float: right;
+    background: var(--ink);
+    color: var(--bg);
+    border: none;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-family: 'Inter Tight', sans-serif;
+    cursor: pointer;
+    border-radius: 2px;
+    margin-bottom: 8px;
+    transition: background 0.15s;
+  }
+  .copy-btn:hover { background: var(--accent-deep); }
+  .copy-btn.copied { background: var(--moss); }
+
+  /* === Footer === */
+  footer {
+    padding: 48px 0 64px;
+    text-align: center;
+    color: var(--ink-mute);
+    font-size: 13px;
+    border-top: 1px solid var(--rule);
+  }
+  footer a { color: var(--ink-soft); text-decoration: underline; text-underline-offset: 3px; }
+  footer p { color: var(--ink-mute); margin-bottom: 6px; }
+
+  /* === Subtle reveal animation === */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  header > * { animation: fadeUp 0.6s ease-out both; }
+  header .venue-tag { animation-delay: 0.05s; }
+  header h1.title { animation-delay: 0.12s; }
+  header .subtitle { animation-delay: 0.20s; }
+  header .authors { animation-delay: 0.28s; }
+  header .affiliations { animation-delay: 0.34s; }
+  header .links { animation-delay: 0.42s; }
+</style>
+</head>
+
+<body>
+
+<div class="top-rule"></div>
+
+<div class="container">
+
+<header>
+  <!-- <span class="venue-tag">ECCV&nbsp;2026 &nbsp;·&nbsp; Submission</span> -->
+
+  <h1 class="title">SeamCam: Quantifying <em>Seamless</em> Camouflage via Multi-Cue Visual Detectability</h1>
+
+  <p class="subtitle">A perceptually grounded metric for camouflage evaluation and generation.</p>
+
+  <div class="authors">
+    <span class="author">Amin Karimi Monsefi<sup>1†</sup></span>
+    <span class="author">Abolfazl Meyarian<sup>2†</sup></span>
+    <span class="author">Mridul Khurana<sup>3</sup></span>
+    <span class="author">Shuheng Wang<sup>1</sup></span>
+    <br>
+    <span class="author">Pouyan Navard<sup>1‡</sup></span>
+    <span class="author">Cheng Zhang<sup>4</sup></span>
+    <span class="author">Anuj Karpatne<sup>3</sup></span>
+    <span class="author">Wei-Lun Chao<sup>5</sup></span>
+    <span class="author">Rajiv Ramnath<sup>1</sup></span>
+  </div>
+
+  <div class="equal-contrib">† Equal contribution &nbsp;·&nbsp; ‡ PhD alumni, now in industry</div>
+
+  <div class="affiliations">
+    <sup>1</sup>The Ohio State University &nbsp;·&nbsp;
+    <sup>2</sup>Path Robotics &nbsp;·&nbsp;
+    <sup>3</sup>Virginia Tech &nbsp;·&nbsp;
+    <sup>4</sup>Texas A&amp;M University &nbsp;·&nbsp;
+    <sup>5</sup>Boston University
+  </div>
+
+  <div class="links">
+    <a class="link-btn" href="#" id="link-paper">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      Paper
+    </a>
+    <a class="link-btn secondary" href="#" id="link-arxiv">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      arXiv
+    </a>
+    <a class="link-btn secondary" href="#" id="link-code">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+      Code
+    </a>
+    <a class="link-btn secondary" href="#" id="link-data">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+      CamFG-1.5K
+    </a>
+    <a class="link-btn secondary" href="#bibtex">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+      BibTeX
+    </a>
+  </div>
+</header>
+
+<!-- ============================== ABSTRACT ============================== -->
+<section id="abstract">
+  <span class="section-eyebrow">01 — Abstract</span>
+  <h2>What we built, and why</h2>
+
+  <div class="tldr">
+    Camouflage is what <strong>prevents</strong> an observer from confidently localizing an animal — not what makes its colors match the background. <strong>SeamCam</strong> measures camouflage as the failure of that localization.
+  </div>
+
+  <div class="abstract">
+    <p>Animals are described as effectively camouflaged when they blend seamlessly with their surroundings, yet no standardized quantitative measure of this seamlessness exists. We address this gap by framing camouflage evaluation as a visual localization problem: a well-camouflaged animal is one that remains difficult to detect even when its category is known.</p>
+
+    <p>We introduce <strong>SeamCam</strong>, a metric that quantifies how detectable an animal is from the available visual evidence. Given an image and a target species, SeamCam generates category-conditioned detection proposals, extracts segmentation masks, and identifies the subset whose collective union yields the highest IoU with the ground-truth mask — the SeamCam score is one minus this maximum recoverable localization signal, where a higher score indicates stronger camouflage.</p>
+
+    <p>In a human two-alternative forced-choice study with <strong>94 participants and 2,390 comparisons</strong>, SeamCam achieves <strong>78.82%</strong> agreement with human camouflage difficulty judgments, outperforming the strongest baseline by ~25 points. We further use SeamCam as a preference signal for Direct Preference Optimization to fine-tune a diffusion-based inpainting model, and release <strong>CamFG-1.5K</strong>, a curated benchmark of 1,521 fully-visible animals for unbiased camouflage-generation evaluation.</p>
+  </div>
+</section>
+
+<!-- ============================== KEY RESULTS ============================== -->
+<section id="results">
+  <span class="section-eyebrow">02 — Highlights</span>
+  <h2>Three numbers worth remembering</h2>
+
+  <div class="stats">
+    <div class="stat">
+      <div class="stat-num">78.82%</div>
+      <div class="stat-label">Human Alignment</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num">+25pt</div>
+      <div class="stat-label">Margin over CamOT</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num">1,521</div>
+      <div class="stat-label">CamFG-1.5K Images</div>
+    </div>
+  </div>
+
+  <p>SeamCam is a category-aware <em>ideal-observer</em> metric. It cares about <em>whether</em> evidence integration succeeds, not about what made it fail — so it correctly rewards both standard background-matching camouflage and disruptive coloration, while remaining stable across detector/segmenter backbones (77.5–79.7% across four pipelines).</p>
+</section>
+
+<!-- ============================== METHOD ============================== -->
+<section id="method">
+  <span class="section-eyebrow">03 — Method</span>
+  <h2>Camouflage as failed localization</h2>
+
+  <p class="lead">Given an image \(I\), ground-truth mask \(M^*\), and species name \(c\), SeamCam produces category-conditioned proposals, segments each, and asks: <em>what is the best subset of those segments at recovering the animal?</em> Whatever that best subset can achieve is the upper bound on detectability — and one minus that is the score.</p>
+
+  <div class="pipeline">
+    <div class="stage">
+      <div class="stage-num">01</div>
+      <div class="stage-title">Propose</div>
+      <div class="stage-body">Grounding DINO queries the image with the species prompt, returning candidate boxes with text-alignment \(\alpha_i\) and confidence \(\beta_i\) scores.</div>
+    </div>
+    <div class="stage">
+      <div class="stage-num">02</div>
+      <div class="stage-title">Gate</div>
+      <div class="stage-body">Two thresholds (\(\tau_\alpha{=}0.5\), \(\tau_\beta{=}0.1\)) filter irrelevant proposals while keeping the suppressed-confidence true positives typical of camouflage.</div>
+    </div>
+    <div class="stage">
+      <div class="stage-num">03</div>
+      <div class="stage-title">Segment</div>
+      <div class="stage-body">SAM-2 turns each surviving box into a mask. We keep Top-\(K{=}7\) by confidence — the elbow of the accuracy/latency curve.</div>
+    </div>
+    <div class="stage">
+      <div class="stage-num">04</div>
+      <div class="stage-title">Aggregate</div>
+      <div class="stage-body">Across all \(2^K{-}1\) non-empty subsets, take the union and compute IoU against \(M^*\). The maximum is \(D\); the score is \(\zeta = 1 - D\).</div>
+    </div>
+  </div>
+
+  <div class="eq-block">
+    \[
+    D(I, \mathcal{M}, c) \;=\; \max_{\emptyset \neq S \subseteq \{1,\ldots,K\}} \mathrm{IoU}\!\left(\bigcup_{i \in S}\widehat{M}_i,\, M^*\right) \qquad \zeta(I, \mathcal{M}, c) = 1 - D
+    \]
+  </div>
+
+  <p>This formulation is naturally robust to two common detector pathologies: <strong>duplicate proposals</strong> don't change the max-union IoU, and <strong>noisy weak detections</strong> are absorbed because the maximization only ever picks subsets that help.</p>
+
+  <div class="figure">
+    <div class="figure-frame">
+      <div class="figure-placeholder">[ figure_method.png · pipeline overview ]</div>
+    </div>
+    <div class="figure-caption">
+      <strong>Figure 1.</strong> SeamCam framework. Given an image and species name, we generate category-conditioned proposals via Grounding DINO, apply semantic and confidence gating, and obtain segmentation masks from SAM-2. All proposal subsets are evaluated; the maximum-IoU subset defines detectability \(D\). The camouflage score is \(1 - D\).
+    </div>
+  </div>
+</section>
+
+<!-- ============================== HUMAN STUDY ============================== -->
+<section id="human-study">
+  <span class="section-eyebrow">04 — Human Study</span>
+  <h2>What 94 people thought</h2>
+
+  <p>We ran a two-alternative forced-choice study: participants saw image pairs and chose <em>"which is more camouflaged?"</em>. With ties dropped, attention-screened catch trials, and pairs with fewer than three valid responses excluded, we had 2,290 valid pairs and 94 participants.</p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Metric</th>
+          <th class="num">Human Agreement</th>
+          <th class="num">Δ vs. Chance</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>CamOT</td>
+          <td class="num">53.89%</td>
+          <td class="num">+3.89</td>
+        </tr>
+        <tr class="our-row">
+          <td>SeamCam (ours)</td>
+          <td class="num">78.82%</td>
+          <td class="num">+28.82</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>McNemar's paired test on the 2,271-pair shared subset gives \(\chi^2_{cc} = 300.67\), <strong>\(p < 10^{-67}\)</strong> — SeamCam agrees with humans where CamOT disagrees roughly <strong>3.2× more often</strong> than the reverse. Per-species Wilson intervals place SeamCam above chance for all 20 species in the study.</p>
+
+  <div class="figure">
+    <div class="figure-frame">
+      <div class="figure-placeholder">[ figure_per_species.png · per-species accuracy bar chart ]</div>
+    </div>
+    <div class="figure-caption">
+      <strong>Figure 2.</strong> Per-species accuracy comparison. SeamCam (green) outperforms CamOT (brown) across all 20 categories. Largest gaps appear in <em>Fish</em> (Δ = 0.45), <em>Sea Horse</em> (Δ = 0.39), and <em>Cat</em> (Δ = 0.36); the smallest in <em>Cicada</em> and <em>Toad</em>.
+    </div>
+  </div>
+</section>
+
+<!-- ============================== DPO ============================== -->
+<section id="dpo">
+  <span class="section-eyebrow">05 — Generation</span>
+  <h2>SeamCam as a training signal</h2>
+
+  <p>We use SeamCam to mine <em>hard negatives</em> for Direct Preference Optimization of an SD-V2 inpainting model: real camouflage images are winners; the highest-scoring synthetic candidates (most convincingly camouflaged among generated alternatives) become losers.</p>
+
+  <div class="figure">
+    <div class="figure-frame">
+      <div class="figure-placeholder">[ figure_dpo_pipeline.png · winner/loser pair selection ]</div>
+    </div>
+    <div class="figure-caption">
+      <strong>Figure 3.</strong> SeamCam-based DPO sample selection. InternVL3-14B generates 12 environmental prompt variants per training image; SD-V2 Inpainting synthesizes candidates; the highest-SeamCam candidate is selected as the hard negative against the real image (winner).
+    </div>
+  </div>
+
+  <h3>Ablation: training signal on SD-V2 base</h3>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Training Signal</th>
+          <th class="num">KID ↓</th>
+          <th class="num">FID ↓</th>
+          <th class="num">HPS-v2 ↑</th>
+          <th class="num">CamOT ↑</th>
+          <th class="num">SeamCam ↑</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>Zero-shot</td><td class="num">0.0258</td><td class="num">88.28</td><td class="num">0.190</td><td class="num">0.3619</td><td class="num">0.1824</td></tr>
+        <tr><td>LoRA + SFT</td><td class="num">0.0248</td><td class="num">84.28</td><td class="num"><span class="second">0.193</span></td><td class="num">0.3641</td><td class="num">0.2519</td></tr>
+        <tr><td>DPO (Random)</td><td class="num">0.0187</td><td class="num">78.04</td><td class="num">0.192</td><td class="num">0.3874</td><td class="num">0.2565</td></tr>
+        <tr><td>DPO (CamOT)</td><td class="num"><span class="second">0.0168</span></td><td class="num"><span class="second">77.26</span></td><td class="num"><span class="second">0.193</span></td><td class="num"><span class="best">0.4352</span></td><td class="num"><span class="second">0.2995</span></td></tr>
+        <tr class="our-row"><td><strong>DPO (SeamCam)</strong></td><td class="num"><span class="best">0.0139</span></td><td class="num"><span class="best">71.25</span></td><td class="num"><span class="best">0.195</span></td><td class="num"><span class="second">0.4144</span></td><td class="num"><span class="best">0.3811</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>DPO (CamOT) gets the highest <em>CamOT</em> score — but that's in-distribution reward hacking. The independent metrics (KID, FID, HPS-v2) all favor DPO (SeamCam), confirming the gains are real.</p>
+
+  <h3>Comparison on CamFG-1.5K</h3>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Method</th>
+          <th class="num">KID ↓</th>
+          <th class="num">FID ↓</th>
+          <th class="num">HPS-v2 ↑</th>
+          <th class="num">CamOT ↑</th>
+          <th class="num">SeamCam ↑</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>LCG-Net</td><td class="num">0.1455</td><td class="num">248.58</td><td class="num">0.158</td><td class="num"><span class="second">0.4263</span></td><td class="num">0.2954</td></tr>
+        <tr><td>TFill</td><td class="num">0.0669</td><td class="num">131.30</td><td class="num">0.148</td><td class="num"><span class="best">0.5067</span></td><td class="num">0.3571</td></tr>
+        <tr><td>LDM</td><td class="num">0.0423</td><td class="num">99.43</td><td class="num">0.165</td><td class="num">0.3751</td><td class="num">0.3474</td></tr>
+        <tr><td>RePaint-L</td><td class="num">0.0266</td><td class="num">101.21</td><td class="num"><span class="second">0.172</span></td><td class="num">0.3930</td><td class="num">0.3501</td></tr>
+        <tr><td>LAKE-RED</td><td class="num"><span class="second">0.0157</span></td><td class="num"><span class="best">70.65</span></td><td class="num">0.171</td><td class="num">0.3967</td><td class="num"><span class="second">0.3639</span></td></tr>
+        <tr class="our-row"><td><strong>DPO (SeamCam)</strong></td><td class="num"><span class="best">0.0139</span></td><td class="num"><span class="second">71.25</span></td><td class="num"><span class="best">0.195</span></td><td class="num">0.4144</td><td class="num"><span class="best">0.3811</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="figure">
+    <div class="figure-frame">
+      <div class="figure-placeholder">[ figure_generation_qualitative.png · qualitative generation comparison ]</div>
+    </div>
+    <div class="figure-caption">
+      <strong>Figure 4.</strong> Qualitative comparison. Given only the foreground mask, SeamCam-DPO produces backgrounds that match each animal's natural habitat. TFill loses color fidelity, RePaint-L generates implausible scenes, LDM over-saturates, LAKE-RED places animals in ecologically mismatched environments.
+    </div>
+  </div>
+</section>
+
+<!-- ============================== DATASET ============================== -->
+<section id="dataset">
+  <span class="section-eyebrow">06 — Dataset</span>
+  <h2>CamFG-1.5K</h2>
+
+  <p>Existing camouflage datasets contain images that are already partially camouflaged, cropped, or occluded — confounds that systematically bias the evaluation of <em>generation</em> models. <strong>CamFG-1.5K</strong> eliminates these confounds by construction.</p>
+
+  <p>1,521 high-resolution iNaturalist images, each containing a complete, well-segmented animal with minimal occlusion. The dataset spans more than 1,000 species across six taxonomic groups (insects, reptiles, amphibians, fish, birds, mammals) and multiple biome types. It will be publicly released to support reproducible benchmarking.</p>
+
+  <div class="figure">
+    <div class="figure-frame">
+      <div class="figure-placeholder">[ figure_dataset_comparison.png · CamFG-1.5K vs existing datasets ]</div>
+    </div>
+    <div class="figure-caption">
+      <strong>Figure 5.</strong> Quality comparison between CamFG-1.5K and existing datasets. Existing collections often include subjects that are cropped or partially camouflaged, biasing the evaluation of camouflage models. CamFG-1.5K features clearly visible animals with minimal obstructions, enabling unbiased assessment of generation methods.
+    </div>
+  </div>
+</section>
+
+<!-- ============================== BIBTEX ============================== -->
+<section id="bibtex">
+  <span class="section-eyebrow">07 — Citation</span>
+  <h2>Cite this work</h2>
+
+  <p>If SeamCam, CamFG-1.5K, or our DPO recipe is useful in your research, please cite:</p>
+
+  <div style="position: relative;">
+    <button class="copy-btn" id="copy-btn" onclick="copyBibtex()">Copy</button>
+    <pre class="bibtex" id="bibtex-block">@inproceedings{monsefi2026seamcam,
+  title     = {SeamCam: Quantifying Seamless Camouflage via Multi-Cue Visual Detectability},
+  author    = {Monsefi, Amin Karimi and Meyarian, Abolfazl and Khurana, Mridul
+               and Wang, Shuheng and Navard, Pouyan and Zhang, Cheng
+               and Karpatne, Anuj and Chao, Wei-Lun and Ramnath, Rajiv},
+  <!-- booktitle = {European Conference on Computer Vision (ECCV)}, -->
+  year      = {2026}
+}</pre>
+  </div>
+</section>
+
+</div>
+
+<footer>
+  <div class="container">
+    <p>Template inspired by the academic project page conventions of the CV community.</p>
+    <p>Built with care · <a href="#abstract">back to top ↑</a></p>
+  </div>
+</footer>
+
+<script>
+function copyBibtex() {
+  const text = document.getElementById('bibtex-block').textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById('copy-btn');
+    btn.textContent = 'Copied ✓';
+    btn.classList.add('copied');
+    setTimeout(() => {
+      btn.textContent = 'Copy';
+      btn.classList.remove('copied');
+    }, 1800);
+  });
+}
+</script>
+
+</body>
+</html>
