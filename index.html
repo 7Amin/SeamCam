@@ -503,7 +503,7 @@
 <div class="container">
 
 <header>
-  <!-- <span class="venue-tag">ECCV&nbsp;2026 &nbsp;·&nbsp; Submission</span> -->
+  <span class="venue-tag">ECCV&nbsp;2026 &nbsp;·&nbsp; Submission</span>
 
   <h1 class="title">SeamCam: Quantifying <em>Seamless</em> Camouflage via Multi-Cue Visual Detectability</h1>
 
@@ -535,7 +535,7 @@
   <div class="links">
     <a class="link-btn" href="#" id="link-paper">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-      Paper  
+      Paper
     </a>
     <a class="link-btn secondary" href="#" id="link-arxiv">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
@@ -555,6 +555,18 @@
     </a>
   </div>
 </header>
+
+<!-- ============================== TEASER ============================== -->
+<section id="teaser" style="padding-top: 56px; padding-bottom: 32px;">
+  <div class="figure" style="margin: 0;">
+    <div class="figure-frame">
+      <img src="images/teaser.pdf" alt="SeamCam vs CamOT comparison across diverse camouflage scenarios" />
+    </div>
+    <div class="figure-caption">
+      <strong>Figure 1.</strong> <strong>SeamCam vs. CamOT.</strong> SeamCam produces consistent and accurate camouflage difficulty scores across diverse scenarios, whereas CamOT exhibits notable inconsistencies. As illustrated by the polar bear — where superficial color and lighting similarity between subject and background causes CamOT to erroneously overestimate camouflage effectiveness despite the subject being plainly visible — CamOT assigns a disproportionately high score relative to SeamCam.
+    </div>
+  </div>
+</section>
 
 <!-- ============================== ABSTRACT ============================== -->
 <section id="abstract">
@@ -637,10 +649,10 @@
 
   <div class="figure">
     <div class="figure-frame">
-      <div class="figure-placeholder">[ figure_method.png · pipeline overview ]</div>
+      <img src="images/PerceptCamScore.pdf" alt="SeamCam framework overview: Grounding DINO proposals, SAM-2 segmentation, subset IoU evaluation" />
     </div>
     <div class="figure-caption">
-      <strong>Figure 1.</strong> SeamCam framework. Given an image and species name, we generate category-conditioned proposals via Grounding DINO, apply semantic and confidence gating, and obtain segmentation masks from SAM-2. All proposal subsets are evaluated; the maximum-IoU subset defines detectability \(D\). The camouflage score is \(1 - D\).
+      <strong>Figure 3.</strong> SeamCam framework. Given an image and species name, we generate category-conditioned proposals via Grounding DINO, apply semantic and confidence gating, and obtain segmentation masks from SAM-2. All proposal subsets are evaluated; the maximum-IoU subset defines detectability \(D\). The camouflage score is \(1 - D\).
     </div>
   </div>
 </section>
@@ -680,10 +692,10 @@
 
   <div class="figure">
     <div class="figure-frame">
-      <div class="figure-placeholder">[ figure_per_species.png · per-species accuracy bar chart ]</div>
+      <img src="images/seamcam_vs_camot.pdf" alt="Per-species accuracy bar chart: SeamCam vs CamOT across 20 species" />
     </div>
     <div class="figure-caption">
-      <strong>Figure 2.</strong> Per-species accuracy comparison. SeamCam (green) outperforms CamOT (brown) across all 20 categories. Largest gaps appear in <em>Fish</em> (Δ = 0.45), <em>Sea Horse</em> (Δ = 0.39), and <em>Cat</em> (Δ = 0.36); the smallest in <em>Cicada</em> and <em>Toad</em>.
+      <strong>Figure 5.</strong> Per-species accuracy comparison. SeamCam (green) outperforms CamOT (brown) across all 20 categories. Largest gaps appear in <em>Fish</em> (Δ = 0.45), <em>Sea Horse</em> (Δ = 0.39), and <em>Cat</em> (Δ = 0.36); the smallest in <em>Cicada</em> and <em>Toad</em>.
     </div>
   </div>
 </section>
@@ -697,10 +709,10 @@
 
   <div class="figure">
     <div class="figure-frame">
-      <div class="figure-placeholder">[ figure_dpo_pipeline.png · winner/loser pair selection ]</div>
+      <img src="images/DPO.pdf" alt="SeamCam-based DPO pipeline: prompt generation, candidate synthesis, hard-negative selection" />
     </div>
     <div class="figure-caption">
-      <strong>Figure 3.</strong> SeamCam-based DPO sample selection. InternVL3-14B generates 12 environmental prompt variants per training image; SD-V2 Inpainting synthesizes candidates; the highest-SeamCam candidate is selected as the hard negative against the real image (winner).
+      <strong>Figure 4.</strong> SeamCam-based DPO sample selection. InternVL3-14B generates 12 environmental prompt variants per training image; SD-V2 Inpainting synthesizes candidates; the highest-SeamCam candidate is selected as the hard negative against the real image (winner).
     </div>
   </div>
 
@@ -757,10 +769,10 @@
 
   <div class="figure">
     <div class="figure-frame">
-      <div class="figure-placeholder">[ figure_generation_qualitative.png · qualitative generation comparison ]</div>
+      <img src="images/SeamCam_1.png" alt="Qualitative comparison of SeamCam-DPO vs baseline camouflage generation methods" />
     </div>
     <div class="figure-caption">
-      <strong>Figure 4.</strong> Qualitative comparison. Given only the foreground mask, SeamCam-DPO produces backgrounds that match each animal's natural habitat. TFill loses color fidelity, RePaint-L generates implausible scenes, LDM over-saturates, LAKE-RED places animals in ecologically mismatched environments.
+      <strong>Figure 6.</strong> Qualitative comparison. Given only the foreground mask, SeamCam-DPO produces backgrounds that match each animal's natural habitat. TFill loses color fidelity, RePaint-L generates implausible scenes, LDM over-saturates, LAKE-RED places animals in ecologically mismatched environments.
     </div>
   </div>
 </section>
@@ -776,10 +788,10 @@
 
   <div class="figure">
     <div class="figure-frame">
-      <div class="figure-placeholder">[ figure_dataset_comparison.png · CamFG-1.5K vs existing datasets ]</div>
+      <img src="images/dataset.pdf" alt="CamFG-1.5K vs existing camouflage datasets: image quality comparison" />
     </div>
     <div class="figure-caption">
-      <strong>Figure 5.</strong> Quality comparison between CamFG-1.5K and existing datasets. Existing collections often include subjects that are cropped or partially camouflaged, biasing the evaluation of camouflage models. CamFG-1.5K features clearly visible animals with minimal obstructions, enabling unbiased assessment of generation methods.
+      <strong>Figure 2.</strong> Quality comparison between CamFG-1.5K and existing datasets. Existing collections often include subjects that are cropped or partially camouflaged, biasing the evaluation of camouflage models. CamFG-1.5K features clearly visible animals with minimal obstructions, enabling unbiased assessment of generation methods.
     </div>
   </div>
 </section>
@@ -798,7 +810,7 @@
   author    = {Monsefi, Amin Karimi and Meyarian, Abolfazl and Khurana, Mridul
                and Wang, Shuheng and Navard, Pouyan and Zhang, Cheng
                and Karpatne, Anuj and Chao, Wei-Lun and Ramnath, Rajiv},
-  <!-- booktitle = {European Conference on Computer Vision (ECCV)}, -->
+  booktitle = {European Conference on Computer Vision (ECCV)},
   year      = {2026}
 }</pre>
   </div>
